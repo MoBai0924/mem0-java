@@ -21,7 +21,7 @@ mem0 enables LLM-based applications to persist, search, and manage contextual me
 - **2 Rerankers** — Cohere, LLM-based
 
 ### Infrastructure
-- **Dual Database** — PostgreSQL (JPA + pgvector) for main data, MySQL (HikariCP) for history store
+- **Dual Database** — PostgreSQL (MyBatis + pgvector) for main data, MySQL (HikariCP) for history store
 - **Advanced Metadata Filters** — eq, ne, gt, gte, lt, lte, in, nin, contains, icontains, AND, OR, NOT, wildcard
 - **BM25 Scoring** — Query-length-adaptive sigmoid normalization with additive fusion
 - **Rule-based Lemmatizer** — English lemmatization (200+ irregular verbs, suffix rules, -ing preservation)
@@ -63,7 +63,7 @@ CREATE DATABASE mem0_history;
 
 ### 3. Configure Application
 
-Edit `mem0-server/src/main/resources/application.yml` or set environment variables:
+Edit `mem0/mem0-server/src/main/resources/application.yml` or set environment variables:
 
 ```yaml
 spring:
@@ -97,7 +97,7 @@ mem0:
 ### 4. Run
 
 ```bash
-./mvnw spring-boot:run -pl mem0-server
+./mvnw spring-boot:run -pl mem0/mem0-server
 ```
 
 Or with Docker:
@@ -240,39 +240,63 @@ Score fusion formula: `combined = (semantic + bm25 + entityBoost) / maxPossible`
 
 ```
 mem0-java/
-├── mem0-core/                    # Core library
-│   └── src/main/java/com/mem0/core/
-│       ├── client/               # MemoryClient REST SDK
-│       ├── config/               # Prompts, PromptBuilder, MemoryConfig, MemoryType
-│       ├── domain/model/         # JPA entities (Memory, MemoryHistory, MemoryEvent)
-│       ├── dto/                  # Request/Response DTOs
-│       ├── embedding/            # Embedding provider interface + 7 implementations
-│       ├── exception/            # 7 exception types with error codes
-│       ├── llm/                  # LLM provider interface + 9 implementations
-│       ├── reranker/             # Reranker interface + 2 implementations
-│       ├── repository/           # JPA repositories
-│       ├── service/              # MemoryService, EntityStore, FactExtractor, etc.
-│       ├── utils/                # Scoring, Lemmatizer, EntityExtractorUtil, MetadataFilter
-│       └── vectorstore/          # VectorStore interface + 8 implementations
-├── mem0-server/                  # REST API server
-│   └── src/main/java/com/mem0/server/
-│       ├── config/               # OpenAPI configuration
-│       ├── controller/           # REST controllers
-│       ├── domain/model/         # Server entities (User, ApiKey, RequestLog)
-│       ├── health/               # Health indicators
-│       ├── repository/           # Server JPA repositories
-│       ├── security/             # JWT, API key, rate limiting, request logging
-│       └── service/              # Auth, ApiKey, Config, Entity services
-├── mem0-core/src/main/resources/
-│   └── db/migration/             # Flyway migrations (V1-V3)
-└── pom.xml                       # Parent POM
+├── mem0/                         # Java backend (Maven multi-module)
+│   ├── pom.xml                   # Parent POM
+│   ├── mem0-core/                # Core library
+│   │   └── src/main/java/cn/hsine/mem0/core/
+│   │       ├── client/           # MemoryClient REST SDK
+│   │       ├── config/           # Prompts, PromptBuilder, MemoryConfig, MemoryType
+│   │       ├── domain/model/     # Entities (Memory, MemoryHistory, MemoryEvent)
+│   │       ├── dto/              # Request/Response DTOs
+│   │       ├── embedding/        # Embedding provider interface + 7 implementations
+│   │       ├── entityextractor/  # Entity extraction interface + LLM implementation
+│   │       ├── entitystore/      # Entity store interface + PgEntityStore
+│   │       ├── exception/        # Exception types with error codes
+│   │       ├── llm/              # LLM provider interface + 9 implementations
+│   │       ├── message/          # Message entity and service
+│   │       ├── reranker/         # Reranker interface + 6 implementations
+│   │       ├── repository/       # MyBatis repositories + type handlers
+│   │       ├── score/            # BM25 scoring parameters
+│   │       ├── service/          # MemoryService, TelemetryService
+│   │       ├── utils/            # Scoring, Lemmatizer, EntityExtractorUtil, MetadataFilter
+│   │       └── vectorstore/      # VectorStore interface + 8 implementations
+│   ├── mem0-core/src/main/resources/
+│   │   ├── db/migration/         # Flyway migrations (V1-V3)
+│   │   └── mapper/              # MyBatis XML mappers
+│   └── mem0-server/              # REST API server
+│       └── src/main/java/cn/hsine/mem0/server/
+│           ├── config/           # OpenAPI configuration
+│           ├── controller/       # REST controllers
+│           ├── domain/model/     # Server entities (User, ApiKey, RequestLog)
+│           ├── dto/              # Request/Response DTOs
+│           ├── exception/        # Global exception handler
+│           ├── health/           # Health indicators
+│           ├── repository/       # MyBatis repositories
+│           ├── security/         # JWT, API key, rate limiting, request logging
+│           └── service/          # Auth, ApiKey, Config, Entity services
+├── dashboard/                    # Web dashboard (Next.js)
+│   └── src/
+│       ├── app/                  # App Router pages
+│       │   ├── (auth)/           # Login page
+│       │   ├── (root)/           # Main app (dashboard, memories, analytics, etc.)
+│       │   ├── api/              # API route handlers
+│       │   └── setup/            # Setup wizard
+│       ├── components/           # UI components (shadcn/ui + custom)
+│       ├── hooks/                # React hooks
+│       ├── lib/                  # Utilities and validators
+│       ├── store/                # Redux store
+│       ├── styles/               # Global styles and animations
+│       ├── types/                # TypeScript type definitions
+│       └── utils/                # API client and helpers
+├── Dockerfile                    # Backend Docker build
+└── .github/workflows/ci.yml     # CI pipeline
 ```
 
 ## Testing
 
 ```bash
 # Unit tests only
-./mvnw test -pl mem0-core
+./mvnw test -pl mem0/mem0-core
 
 # All tests (requires Docker for Testcontainers)
 ./mvnw verify
@@ -309,8 +333,8 @@ mem0-java/
 | Component | Technology |
 |-----------|------------|
 | Language | Java 21 (preview features) |
-| Framework | Spring Boot 4.0.0-M1 |
-| ORM | Spring Data JPA / Hibernate 6 |
+| Framework | Spring Boot 4.1.0-RC1 |
+| ORM | MyBatis 4.0.1 |
 | Primary DB | PostgreSQL 15+ with pgvector |
 | History DB | MySQL 8+ (HikariCP) |
 | Migrations | Flyway |
@@ -319,7 +343,8 @@ mem0-java/
 | Build | Maven |
 | CI | GitHub Actions |
 | Container | Docker (Eclipse Temurin 21) |
+| Dashboard | Next.js 15 / React 19 / TypeScript / Tailwind CSS |
 
 ## License
 
-MIT
+Apache 2.0
