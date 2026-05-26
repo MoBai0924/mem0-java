@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mem0.core.repository.MemoryRepository">
+
+    <sql id="memoryColumns">
+        id, content, hash, metadata, user_id AS userId, agent_id AS agentId,
+        run_id AS runId, created_at AS createdAt, updated_at AS updatedAt, version
+    </sql>
+
+    <select id="findById" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/> FROM memories WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/> FROM memories
+    </select>
+
+    <insert id="save" parameterType="com.mem0.core.domain.model.Memory">
+        INSERT INTO memories (id, content, hash, metadata, user_id, agent_id, run_id, created_at, updated_at, version)
+        VALUES (#{id}, #{content}, #{hash},
+                #{metadata, typeHandler=com.mem0.core.repository.handler.JsonbTypeHandler},
+                #{userId}, #{agentId}, #{runId}, #{createdAt}, #{updatedAt}, #{version})
+    </insert>
+
+    <update id="update" parameterType="com.mem0.core.domain.model.Memory">
+        UPDATE memories
+        SET content = #{content}, hash = #{hash},
+            metadata = #{metadata, typeHandler=com.mem0.core.repository.handler.JsonbTypeHandler},
+            user_id = #{userId}, agent_id = #{agentId}, run_id = #{runId},
+            created_at = #{createdAt}, updated_at = #{updatedAt}, version = #{version}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="com.mem0.core.domain.model.Memory">
+        DELETE FROM memories WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteById">
+        DELETE FROM memories WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteAll">
+        DELETE FROM memories
+    </delete>
+
+    <select id="findByUserId" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/> FROM memories WHERE user_id = #{userId}
+    </select>
+
+    <select id="findByAgentId" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/> FROM memories WHERE agent_id = #{agentId}
+    </select>
+
+    <select id="findByRunId" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/> FROM memories WHERE run_id = #{runId}
+    </select>
+
+    <select id="findByFilters" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/>
+        FROM memories
+        WHERE
+        <if test="userId != null">user_id = #{userId} AND</if>
+        <if test="agentId != null">agent_id = #{agentId} AND</if>
+        <if test="runId != null">run_id = #{runId} AND</if>
+        1=1
+    </select>
+
+    <delete id="deleteByUserId">
+        DELETE FROM memories WHERE user_id = #{userId}
+    </delete>
+
+    <delete id="deleteByAgentId">
+        DELETE FROM memories WHERE agent_id = #{agentId}
+    </delete>
+
+    <delete id="deleteByRunId">
+        DELETE FROM memories WHERE run_id = #{runId}
+    </delete>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(*) FROM memories WHERE user_id = #{userId}
+    </select>
+
+    <select id="countByAgentId" resultType="long">
+        SELECT COUNT(*) FROM memories WHERE agent_id = #{agentId}
+    </select>
+
+    <select id="countByRunId" resultType="long">
+        SELECT COUNT(*) FROM memories WHERE run_id = #{runId}
+    </select>
+
+    <select id="findByHash" resultType="com.mem0.core.domain.model.Memory">
+        SELECT <include refid="memoryColumns"/> FROM memories WHERE hash = #{hash}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM memories
+    </select>
+
+    <select id="existsById" resultType="boolean">
+        SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END FROM memories WHERE id = #{id}
+    </select>
+
+</mapper>

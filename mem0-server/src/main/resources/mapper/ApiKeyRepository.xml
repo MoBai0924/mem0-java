@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mem0.server.repository.ApiKeyRepository">
+
+    <sql id="apiKeyColumns">
+        id, user_id AS userId, key_hash AS keyHash, name,
+        expires_at AS expiresAt, is_active AS active, created_at AS createdAt
+    </sql>
+
+    <select id="findById" resultType="com.mem0.server.domain.model.ApiKey">
+        SELECT <include refid="apiKeyColumns"/> FROM api_keys WHERE id = #{id}
+    </select>
+
+    <select id="findByKeyHash" resultType="com.mem0.server.domain.model.ApiKey">
+        SELECT <include refid="apiKeyColumns"/> FROM api_keys WHERE key_hash = #{keyHash}
+    </select>
+
+    <select id="findByUserIdAndActive" resultType="com.mem0.server.domain.model.ApiKey">
+        SELECT <include refid="apiKeyColumns"/>
+        FROM api_keys
+        WHERE user_id = #{userId} AND is_active = #{active}
+    </select>
+
+    <insert id="save" parameterType="com.mem0.server.domain.model.ApiKey">
+        INSERT INTO api_keys (id, user_id, key_hash, name, expires_at, is_active, created_at)
+        VALUES (#{id}, #{userId}, #{keyHash}, #{name}, #{expiresAt}, #{active}, #{createdAt})
+    </insert>
+
+    <update id="update" parameterType="com.mem0.server.domain.model.ApiKey">
+        UPDATE api_keys
+        SET user_id = #{userId}, key_hash = #{keyHash}, name = #{name},
+            expires_at = #{expiresAt}, is_active = #{active}, created_at = #{createdAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(*) FROM api_keys WHERE user_id = #{userId}
+    </select>
+
+</mapper>
