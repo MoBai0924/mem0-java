@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.hsine.mem0.server.repository.RequestLogRepository">
+
+    <sql id="requestLogColumns">
+        id,
+        method,
+        path,
+        status_code AS statusCode,
+        auth_type AS authType
+        latency_ms AS latencyMs,
+        created_at AS createdAt
+    </sql>
+
+    <insert id="save" parameterType="cn.hsine.mem0.server.domain.model.RequestLog">
+        INSERT INTO request_logs (
+          id, method, path, status_code, auth_type, latency_ms, created_at)
+        VALUES (
+          #{id}, #{method}, #{path}, #{statusCode}, #{authType},#{latencyMs}, #{createdAt}
+        )
+    </insert>
+
+    <select id="findByCreatedAtBetweenOrderByCreatedAtDesc" resultType="cn.hsine.mem0.server.domain.model.RequestLog">
+        SELECT <include refid="requestLogColumns"/>
+        FROM request_logs
+        WHERE created_at BETWEEN #{start} AND #{end}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByFilters" resultType="cn.hsine.mem0.server.domain.model.RequestLog">
+        SELECT <include refid="requestLogColumns"/>
+        FROM request_logs
+        WHERE
+        <if test="method != null">method = #{method} AND</if>
+        <if test="statusCode != null">status_code = #{statusCode} AND</if>
+        created_at BETWEEN #{start} AND #{end}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

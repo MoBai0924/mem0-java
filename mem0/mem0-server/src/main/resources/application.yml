@@ -1,0 +1,161 @@
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8001}
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/xml,text/plain
+
+
+spring:
+  application:
+    name: mem0-server
+
+  # Database Configuration
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mem0_app}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: Mem0HikariPool
+
+  # Jackson JSON Configuration
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+# MyBatis Configuration
+mybatis:
+  type-aliases-package: cn.hsine.mem0.core.domain.model,cn.hsine.mem0.server.domain.model,cn.hsine.mem0.core.message
+  type-handlers-package: cn.hsine.mem0.core.repository.handler
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+    cache-enabled: true
+    lazy-loading-enabled: true
+    aggressive-lazy-loading: false
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# mem0 Configuration
+mem0:
+  vector-store:
+    provider: ${VECTOR_STORE_PROVIDER:pgvector}
+    config:
+      host: ${QDRANT_HOST:localhost}
+      port: ${QDRANT_PORT:5432}
+      collection-name: ${QDRANT_COLLECTION:memories}
+      api-key: ${QDRANT_API_KEY:}
+      dbname: mem0_app,
+      user: postgres,
+      password: postgres,
+      embedding_model_dims: 768,
+      hnsw: True
+  llm:
+    provider: ${LLM_PROVIDER:deepseek}
+    config:
+      model: ${LLM_MODEL:deepseek-v4-pro}
+      api-key: ${OPENAI_API_KEY:sk-0ce2c4e0da0244e4b7ee74043eaafafd}
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      temperature: 0.2
+      max-tokens: 2000
+      toP: 0.1
+      enable_vision: false
+  embedding:
+    provider: ${EMBEDDING_PROVIDER:ollama}
+    config:
+      model: ${EMBEDDING_MODEL:embeddinggemma:300m}
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:http://localhost:11434}
+  history:
+    postgresql:
+      # 自定义的配置要用jdbc-url
+      jdbc-url: jdbc:postgresql://${HISTORY_DB_HOST:localhost}:${HISTORY_DB_PORT:5432}/${HISTORY_DB_NAME:mem0_app}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      username: ${HISTORY_DB_USER:postgres}
+      password: ${HISTORY_DB_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+  reranker:
+    provider: ${RERANKER_PROVIDER:llm_reranker}
+    config:
+      model: ${LLM_MODEL:deepseek-v4-pro}
+      api-key: ${OPENAI_API_KEY:sk-0ce2c4e0da0244e4b7ee74043eaafafd}
+      base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+      max-tokens: 2000
+      enable_vision: false
+      provider: deepseek
+      temperature: 0.2
+      initial_candidates: 20
+      top_n: 5
+  entity-store:
+    provider: ${VECTOR_STORE_PROVIDER:pgvector}
+    config:
+      host: ${QDRANT_HOST:localhost}
+      port: ${QDRANT_PORT:5432}
+      collection-name: ${QDRANT_COLLECTION:memories_entities}
+      api-key: ${QDRANT_API_KEY:}
+      dbname: mem0_app,
+      user: postgres,
+      password: postgres,
+      embedding_model_dims: 768,
+      hnsw: True
+
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:change-this-secret-key-in-production-to-at-least-256-bits}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  issuer: mem0
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    cn.hsine.mem0: DEBUG
+    org.springframework.web: INFO
+    com.zaxxer.hikari: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/mem0-server.log
+    max-size: 10MB
+    max-history: 30
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
